@@ -1,0 +1,13 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "account",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceRoot}/account/cmd/http/main.go",    
+            "envFile": "${workspaceFolder}/account/.env",  
+        "cwd": "${workspaceRoot}/account" }
+    ]
+}
