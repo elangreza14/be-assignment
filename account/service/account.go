@@ -26,7 +26,7 @@ func NewAccountService(accountRepo accountRepo) *AccountService {
 }
 
 func (as *AccountService) CreateAccount(ctx context.Context, userID uuid.UUID, name string, req dto.CreateAccountPayload) error {
-	account, err := model.NewAccount(userID, name, req.CurrencyCode)
+	account, err := model.NewAccount(userID, name, req.CurrencyCode, req.ProductID)
 	if err != nil {
 		return err
 	}
@@ -53,6 +53,7 @@ func (as *AccountService) GetAccounts(ctx context.Context, userID uuid.UUID) (dt
 			Balance:      account.Balance,
 			Name:         account.Name,
 			Status:       account.Status,
+			ProductID:    account.ProductID,
 		})
 	}
 

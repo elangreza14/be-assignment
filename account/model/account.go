@@ -10,6 +10,7 @@ import (
 type Account struct {
 	ID           int       `db:"id"`
 	UserID       uuid.UUID `db:"user_id"`
+	ProductID    int       `db:"product_id"`
 	Name         string    `db:"name"`
 	CurrencyCode string    `db:"currency_code"`
 	Balance      int       `db:"balance"`
@@ -19,9 +20,10 @@ type Account struct {
 	UpdatedAt sql.NullTime `db:"updated_at"`
 }
 
-func NewAccount(UserID uuid.UUID, name, currencyCode string) (*Account, error) {
+func NewAccount(userID uuid.UUID, name, currencyCode string, productID int) (*Account, error) {
 	return &Account{
-		UserID:       UserID,
+		UserID:       userID,
+		ProductID:    productID,
 		Name:         name,
 		CurrencyCode: currencyCode,
 		Balance:      0,

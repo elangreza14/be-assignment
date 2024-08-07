@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS "accounts" (
     "id" BIGINT PRIMARY KEY DEFAULT nextval('account_seq'),
     "user_id" uuid REFERENCES users(id),
     "currency_code" VARCHAR REFERENCES currencies(code),
+    "product_id" BIGINT REFERENCES products(id),
     "balance" BIGINT NOT NULL,
     "name" VARCHAR NOT NULL,
     "status" VARCHAR NOT NULL,
