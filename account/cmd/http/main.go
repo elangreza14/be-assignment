@@ -53,8 +53,11 @@ func main() {
 	// dependency injection
 	userRepository := repository.NewUserRepository(db)
 	tokenRepository := repository.NewTokenRepository(db)
+	currencyRepository := repository.NewCurrencyRepository(db)
 	authService := service.NewAuthService(userRepository, tokenRepository)
+	currencyService := service.NewCurrencyService(currencyRepository)
 	authController := controller.NewAuthController(authService)
+	currencyController := controller.NewCurrencyController(currencyService)
 
 	// router
 	if os.Getenv("ENV") != "DEVELOPMENT" {
@@ -79,6 +82,7 @@ func main() {
 	// group api
 	apiGroup := router.Group("/api")
 	routes.AuthRoute(apiGroup, authController)
+	routes.CurrencyRoute(apiGroup, currencyController)
 
 	srv := &http.Server{
 		Addr:    os.Getenv("HTTP_PORT"),

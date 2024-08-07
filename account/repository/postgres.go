@@ -73,6 +73,14 @@ func (pr *PostgresRepo[T]) Get(ctx context.Context, by string, val any) (*T, err
 	return &v, nil
 }
 
+func (pr *PostgresRepo[T]) GetAll(ctx context.Context) ([]T, error) {
+	v, err := pgxutil.Select(ctx, pr.db, pr.QueryBasicSelect, nil, pgx.RowToStructByNameLax[T])
+	if err != nil {
+		return nil, err
+	}
+	return v, nil
+}
+
 func (pr *PostgresRepo[T]) Create(ctx context.Context, payloads ...T) error {
 	for _, payload := range payloads {
 
