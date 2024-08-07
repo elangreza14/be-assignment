@@ -83,3 +83,19 @@ func (as *AuthService) LoginUser(ctx context.Context, req dto.LoginPayload) (str
 
 	return token.Token, nil
 }
+
+func (as *AuthService) ProcessToken(ctx context.Context, reqToken string) (*model.User, error) {
+	token := &model.Token{Token: reqToken}
+
+	id, err := token.IsTokenValid([]byte("test"))
+	if err != nil {
+		return nil, err
+	}
+
+	token, err = as.TokenRepo.Get(ctx, "id", id)
+	if err != nil {
+		return nil, err
+	}
+
+	return as.UserRepo.Get(ctx, "id", token.UserID)
+}

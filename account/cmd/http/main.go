@@ -14,6 +14,7 @@ import (
 
 	"github.com/elangreza14/be-assignment/account/cmd/http/routes"
 	"github.com/elangreza14/be-assignment/account/controller"
+	"github.com/elangreza14/be-assignment/account/middleware"
 	"github.com/elangreza14/be-assignment/account/repository"
 	"github.com/elangreza14/be-assignment/account/service"
 	"github.com/gin-contrib/cors"
@@ -54,10 +55,20 @@ func main() {
 	userRepository := repository.NewUserRepository(db)
 	tokenRepository := repository.NewTokenRepository(db)
 	currencyRepository := repository.NewCurrencyRepository(db)
+	productRepository := repository.NewProductRepository(db)
+	accountRepository := repository.NewAccountRepository(db)
+
 	authService := service.NewAuthService(userRepository, tokenRepository)
 	currencyService := service.NewCurrencyService(currencyRepository)
+	productService := service.NewProductService(productRepository)
+	accountService := service.NewAccountService(accountRepository)
+
 	authController := controller.NewAuthController(authService)
+	accountController := controller.NewAccountController(accountService)
 	currencyController := controller.NewCurrencyController(currencyService)
+	productController := controller.NewProductController(productService)
+
+	authMiddleWare := middleware.NewAuthMiddleware(authService)
 
 	// router
 	if os.Getenv("ENV") != "DEVELOPMENT" {
@@ -83,6 +94,8 @@ func main() {
 	apiGroup := router.Group("/api")
 	routes.AuthRoute(apiGroup, authController)
 	routes.CurrencyRoute(apiGroup, currencyController)
+	routes.ProductRoute(apiGroup, productController)
+	routes.AccountRoute(apiGroup, authMiddleWare, accountController)
 
 	srv := &http.Server{
 		Addr:    os.Getenv("HTTP_PORT"),

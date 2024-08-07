@@ -17,3 +17,12 @@ func NewTokenRepository(
 		PostgresRepo: NewPostgresRepo[model.Token](dbPool),
 	}
 }
+
+func (*tokenRepository) NewTokenRepository(
+	dbPool QueryPgx,
+) *tokenRepository {
+	return &tokenRepository{
+		db:           dbPool,
+		PostgresRepo: NewPostgresRepo[model.Token](dbPool),
+	}
+}
