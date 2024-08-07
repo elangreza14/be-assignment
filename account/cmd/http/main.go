@@ -137,7 +137,41 @@ func DB(ctx context.Context, logger *zap.Logger) (*pgxpool.Pool, error) {
 		os.Getenv("POSTGRES_SSL"),
 	)
 
-	config, err := pgxpool.ParseConfig(connString)
+	db, err := sql.Open("postgres", connString)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = db.Exec(`CREATE SCHEMA IF NOT EXISTS ` + os.Getenv("POSTGRES_SCHEME"))
+	if err != nil {
+		return nil, err
+	}
+
+	newConnString := fmt.Sprintf("%s&search_path=%s", connString, os.Getenv("POSTGRES_SCHEME"))
+
+	db, err = sql.Open("postgres", newConnString)
+	if err != nil {
+		return nil, err
+	}
+
+	driver, err := postgres.WithInstance(db, &postgres.Config{})
+	if err != nil {
+		return nil, err
+	}
+	m, err := migrate.NewWithDatabaseInstance(
+		"file://migrations",
+		"postgres", driver)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := m.Up(); err != nil {
+		if err != migrate.ErrNoChange {
+			return nil, err
+		}
+	}
+
+	config, err := pgxpool.ParseConfig(newConnString)
 	if err != nil {
 		return nil, err
 	}
@@ -160,27 +194,6 @@ func DB(ctx context.Context, logger *zap.Logger) (*pgxpool.Pool, error) {
 	err = conn.Ping(ctx)
 	if err != nil {
 		return nil, err
-	}
-
-	db, err := sql.Open("postgres", connString)
-	if err != nil {
-		return nil, err
-	}
-	driver, err := postgres.WithInstance(db, &postgres.Config{})
-	if err != nil {
-		return nil, err
-	}
-	m, err := migrate.NewWithDatabaseInstance(
-		"file://migrations",
-		"postgres", driver)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := m.Up(); err != nil {
-		if err != migrate.ErrNoChange {
-			return nil, err
-		}
 	}
 
 	return conn, nil
