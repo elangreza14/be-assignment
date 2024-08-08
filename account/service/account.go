@@ -11,7 +11,7 @@ import (
 
 type (
 	accountRepo interface {
-		Create(ctx context.Context, entity model.Account) error
+		Create(ctx context.Context, entity model.Account) (int, error)
 		GetAllByUserID(ctx context.Context, userID uuid.UUID) ([]model.Account, error)
 	}
 
@@ -34,12 +34,13 @@ func (as *AccountService) CreateAccount(ctx context.Context, userID uuid.UUID, n
 		return err
 	}
 
-	err = as.AccountRepo.Create(ctx, *account)
+	id, err := as.AccountRepo.Create(ctx, *account)
 	if err != nil {
 		return err
 	}
 
-	_, err = as.paymentClient.CreateAccount(ctx, &genaccount.AccountRequest{
+	_, err = as.paymentClient.CreateAccount(ctx, &genaccount.CreateAccountRequest{
+		Id:           uint32(id),
 		UserId:       userID.String(),
 		CurrencyCode: req.CurrencyCode,
 		ProductId:    uint32(req.ProductID),
@@ -67,6 +68,7 @@ func (as *AccountService) GetAccounts(ctx context.Context, userID uuid.UUID) (dt
 			CurrencyCode: account.CurrencyCode,
 			Name:         account.Name,
 			ProductID:    account.ProductID,
+			ID:           account.ID,
 		})
 	}
 

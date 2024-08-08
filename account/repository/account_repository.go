@@ -23,21 +23,23 @@ func NewAccountRepository(
 	}
 }
 
-func (pr *accountRepository) Create(ctx context.Context, req model.Account) error {
+func (pr *accountRepository) Create(ctx context.Context, req model.Account) (int, error) {
 	q := `INSERT INTO accounts
 			( user_id, currency_code, name, product_id)
-			VALUES($1,$2,$3,$4 );`
-	_, err := pr.db.Exec(ctx, q, req.UserID, req.CurrencyCode, req.Name, req.ProductID)
+			VALUES($1,$2,$3,$4 ) RETURNING id;`
+	r := pr.db.QueryRow(ctx, q, req.UserID, req.CurrencyCode, req.Name, req.ProductID)
+	var ID int
+	err := r.Scan(&ID)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
-	return nil
+	return ID, nil
 }
 
 func (pr *PostgresRepo[T]) GetAllByUserID(ctx context.Context, userID uuid.UUID) ([]T, error) {
 	q := `SELECT id, user_id, currency_code, name, product_id, created_at, updated_at
-			FROM public.accounts
+			FROM accounts
 			WHERE user_id=$1;`
 	v, err := pgxutil.Select(ctx, pr.db, q, []any{userID}, pgx.RowToStructByNameLax[T])
 	if err != nil {

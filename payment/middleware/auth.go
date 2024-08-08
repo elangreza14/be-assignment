@@ -2,24 +2,31 @@ package middleware
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 
+	gen "github.com/elangreza14/be-assignment/gen/go"
 	"github.com/elangreza14/be-assignment/payment/dto"
 	"github.com/gin-gonic/gin"
 )
 
 type (
 	AuthMiddleware struct {
+		accountClient gen.AccountClient
 	}
 )
 
-func NewAuthMiddleware() *AuthMiddleware {
-	return &AuthMiddleware{}
+func NewAuthMiddleware(accountClient gen.AccountClient) *AuthMiddleware {
+	return &AuthMiddleware{
+		accountClient: accountClient,
+	}
 }
 
-const UserMiddlewareKey = "UserMiddlewareKey"
+const (
+	UserNameMiddlewareKey       = "UserNameMiddlewareKey"
+	UserIDMiddlewareKey         = "UserIDMiddlewareKey"
+	UserAccountIDsMiddlewareKey = "UserAccountIDsMiddlewareKey"
+)
 
 func (am *AuthMiddleware) MustAuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -38,15 +45,18 @@ func (am *AuthMiddleware) MustAuthMiddleware() gin.HandlerFunc {
 		}
 
 		token := rawToken[1]
-		fmt.Println(token)
-		// TODO setup grpc here
-		// user, err := am.authService.ProcessToken(c, token)
-		// if err != nil {
-		// 	c.AbortWithStatusJSON(http.StatusUnauthorized, dto.NewBaseResponse(nil, errors.New("token unauthorize for this user")))
-		// 	return
-		// }
 
-		c.Set(UserMiddlewareKey, nil)
+		userInfo, err := am.accountClient.ValidateToken(c, &gen.ValidateTokenRequest{
+			Token: token,
+		})
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusBadRequest, dto.NewBaseResponse(nil, errors.New("error validating token")))
+			return
+		}
+
+		c.Set(UserNameMiddlewareKey, userInfo.Name)
+		c.Set(UserIDMiddlewareKey, userInfo.UserId)
+		c.Set(UserAccountIDsMiddlewareKey, userInfo.AccountIds)
 
 		c.Next()
 	}

@@ -10,6 +10,7 @@ type (
 		CurrencyCode string `json:"currency_code"`
 		Name         string `json:"name"`
 		ProductID    int    `json:"product_id"`
+		ID           int    `json:"id"`
 	}
 
 	AccountListResponse []AccountListResponseElement

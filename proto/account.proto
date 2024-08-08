@@ -1,20 +1,17 @@
 syntax = "proto3";
 
-option go_package = "github.com/elangreza14/gen;genaccount";
+option go_package = "github.com/elangreza14/gen/account;gen";
 
-message AccountRequest {
-    uint32 id = 1;
+message ValidateTokenRequest {
+    string token = 1;
+}
+
+message ValidateTokenResponse {
+    repeated uint32 account_ids = 1;
     string user_id = 2;
-    string currency_code = 3;
-    uint32 product_id = 4;
-    uint32 balance = 5;
-    string name = 6;
+    string name = 3;
 }
 
-message AccountReply {
-    string status = 1;
-}
-
-service Payment {
-  rpc CreateAccount (AccountRequest) returns (AccountReply) {}
+service Account {
+  rpc ValidateToken (ValidateTokenRequest) returns (ValidateTokenResponse) {}
 }

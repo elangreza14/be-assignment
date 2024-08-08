@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -14,10 +15,11 @@ import (
 
 	"github.com/elangreza14/be-assignment/account/cmd/http/routes"
 	"github.com/elangreza14/be-assignment/account/controller"
+	servergrpc "github.com/elangreza14/be-assignment/account/grpc"
 	"github.com/elangreza14/be-assignment/account/middleware"
 	"github.com/elangreza14/be-assignment/account/repository"
 	"github.com/elangreza14/be-assignment/account/service"
-	genaccount "github.com/elangreza14/be-assignment/gen/go"
+	gen "github.com/elangreza14/be-assignment/gen/go"
 	"github.com/gin-contrib/cors"
 	ginzap "github.com/gin-contrib/zap"
 	"github.com/gin-gonic/gin"
@@ -61,12 +63,12 @@ func main() {
 	productRepository := repository.NewProductRepository(db)
 	accountRepository := repository.NewAccountRepository(db)
 
-	conn, err := grpc.NewClient("localhost:50051", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient("localhost:50052", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
 	}
 	defer conn.Close()
-	paymentClient := genaccount.NewPaymentClient(conn)
+	paymentClient := gen.NewPaymentClient(conn)
 
 	authService := service.NewAuthService(userRepository, tokenRepository)
 	currencyService := service.NewCurrencyService(currencyRepository)
@@ -119,12 +121,30 @@ func main() {
 		}
 	}()
 
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", 50051))
+	if err != nil {
+		log.Fatalf("failed to listen: %v", err)
+	}
+	s := grpc.NewServer()
+	gen.RegisterAccountServer(s, servergrpc.NewAccountServerGrpc(authService, accountService))
+
+	go func() {
+		logger.Info("listening grpc", zap.Int("port", 50051))
+		if err := s.Serve(lis); err != nil {
+			log.Fatalf("failed to serve: %v", err)
+		}
+	}()
+
 	wait := gracefulShutdown(context.Background(), logger, time.Second*5,
 		func(ctx context.Context) error {
 			return srv.Shutdown(ctx)
 		},
 		func(ctx context.Context) error {
 			db.Close()
+			return nil
+		},
+		func(ctx context.Context) error {
+			s.GracefulStop()
 			return nil
 		})
 
@@ -259,7 +279,7 @@ func gracefulShutdown(ctx context.Context, logger *zap.Logger, timeout time.Dura
 
 		wg.Wait()
 		cancel()
-		close(wait)
+		// close(wait)
 	}()
 
 	return wait

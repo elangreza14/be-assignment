@@ -13,7 +13,7 @@ import (
 	"syscall"
 	"time"
 
-	genaccount "github.com/elangreza14/be-assignment/gen/go"
+	gen "github.com/elangreza14/be-assignment/gen/go"
 	"github.com/elangreza14/be-assignment/payment/cmd/http/routes"
 	"github.com/elangreza14/be-assignment/payment/controller"
 	servergrpc "github.com/elangreza14/be-assignment/payment/grpc"
@@ -33,6 +33,7 @@ import (
 	_ "github.com/lib/pq"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 func main() {
@@ -62,10 +63,16 @@ func main() {
 
 	accountService := service.NewAccountService(accountRepository)
 	paymentService := service.NewPaymentService(accountRepository, entryRepository, transferRepository)
-	fmt.Println(accountService)
 	paymentController := controller.NewPaymentController(paymentService)
 
-	authMiddleWare := middleware.NewAuthMiddleware()
+	conn, err := grpc.NewClient("localhost:50051", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatalf("did not connect: %v", err)
+	}
+	defer conn.Close()
+	accountClient := gen.NewAccountClient(conn)
+
+	authMiddleWare := middleware.NewAuthMiddleware(accountClient)
 
 	// router
 	if os.Getenv("ENV") != "DEVELOPMENT" {
@@ -103,15 +110,15 @@ func main() {
 		}
 	}()
 
-	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", 50051))
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", 50052))
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
 	s := grpc.NewServer()
-	genaccount.RegisterPaymentServer(s, servergrpc.NewAccountServerGrpc(accountService))
+	gen.RegisterPaymentServer(s, servergrpc.NewPaymentServerGrpc(accountService))
 
 	go func() {
-		logger.Info("listening grpc", zap.Int("port", 50051))
+		logger.Info("listening grpc", zap.Int("port", 50052))
 		if err := s.Serve(lis); err != nil {
 			log.Fatalf("failed to serve: %v", err)
 		}
@@ -126,7 +133,7 @@ func main() {
 			return nil
 		},
 		func(ctx context.Context) error {
-			s.Stop()
+			s.GracefulStop()
 			return nil
 		})
 
@@ -261,7 +268,7 @@ func gracefulShutdown(ctx context.Context, logger *zap.Logger, timeout time.Dura
 
 		wg.Wait()
 		cancel()
-		close(wait)
+		// close(wait)
 	}()
 
 	return wait

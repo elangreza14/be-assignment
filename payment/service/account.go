@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/elangreza14/be-assignment/payment/dto"
 	"github.com/elangreza14/be-assignment/payment/model"
@@ -23,7 +24,8 @@ func NewAccountService(accountRepo accountRepo) *AccountService {
 	}
 }
 func (as *AccountService) CreateAccount(ctx context.Context, req dto.CreateAccountPayload) error {
-	account, err := model.NewAccount(req.UserID, req.Name, req.CurrencyCode, req.ProductID)
+	fmt.Println(req.ID)
+	account, err := model.NewAccount(req.ID, req.UserID, req.Name, req.CurrencyCode, req.ProductID)
 	if err != nil {
 		return err
 	}

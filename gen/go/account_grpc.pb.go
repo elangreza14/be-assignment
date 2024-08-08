@@ -4,7 +4,7 @@
 // - protoc             (unknown)
 // source: account.proto
 
-package genaccount
+package gen
 
 import (
 	context "context"
@@ -19,101 +19,101 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	Payment_CreateAccount_FullMethodName = "/Payment/CreateAccount"
+	Account_ValidateToken_FullMethodName = "/Account/ValidateToken"
 )
 
-// PaymentClient is the client API for Payment service.
+// AccountClient is the client API for Account service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type PaymentClient interface {
-	CreateAccount(ctx context.Context, in *AccountRequest, opts ...grpc.CallOption) (*AccountReply, error)
+type AccountClient interface {
+	ValidateToken(ctx context.Context, in *ValidateTokenRequest, opts ...grpc.CallOption) (*ValidateTokenResponse, error)
 }
 
-type paymentClient struct {
+type accountClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewPaymentClient(cc grpc.ClientConnInterface) PaymentClient {
-	return &paymentClient{cc}
+func NewAccountClient(cc grpc.ClientConnInterface) AccountClient {
+	return &accountClient{cc}
 }
 
-func (c *paymentClient) CreateAccount(ctx context.Context, in *AccountRequest, opts ...grpc.CallOption) (*AccountReply, error) {
+func (c *accountClient) ValidateToken(ctx context.Context, in *ValidateTokenRequest, opts ...grpc.CallOption) (*ValidateTokenResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(AccountReply)
-	err := c.cc.Invoke(ctx, Payment_CreateAccount_FullMethodName, in, out, cOpts...)
+	out := new(ValidateTokenResponse)
+	err := c.cc.Invoke(ctx, Account_ValidateToken_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// PaymentServer is the server API for Payment service.
-// All implementations must embed UnimplementedPaymentServer
+// AccountServer is the server API for Account service.
+// All implementations must embed UnimplementedAccountServer
 // for forward compatibility.
-type PaymentServer interface {
-	CreateAccount(context.Context, *AccountRequest) (*AccountReply, error)
-	mustEmbedUnimplementedPaymentServer()
+type AccountServer interface {
+	ValidateToken(context.Context, *ValidateTokenRequest) (*ValidateTokenResponse, error)
+	mustEmbedUnimplementedAccountServer()
 }
 
-// UnimplementedPaymentServer must be embedded to have
+// UnimplementedAccountServer must be embedded to have
 // forward compatible implementations.
 //
 // NOTE: this should be embedded by value instead of pointer to avoid a nil
 // pointer dereference when methods are called.
-type UnimplementedPaymentServer struct{}
+type UnimplementedAccountServer struct{}
 
-func (UnimplementedPaymentServer) CreateAccount(context.Context, *AccountRequest) (*AccountReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CreateAccount not implemented")
+func (UnimplementedAccountServer) ValidateToken(context.Context, *ValidateTokenRequest) (*ValidateTokenResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ValidateToken not implemented")
 }
-func (UnimplementedPaymentServer) mustEmbedUnimplementedPaymentServer() {}
-func (UnimplementedPaymentServer) testEmbeddedByValue()                 {}
+func (UnimplementedAccountServer) mustEmbedUnimplementedAccountServer() {}
+func (UnimplementedAccountServer) testEmbeddedByValue()                 {}
 
-// UnsafePaymentServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to PaymentServer will
+// UnsafeAccountServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to AccountServer will
 // result in compilation errors.
-type UnsafePaymentServer interface {
-	mustEmbedUnimplementedPaymentServer()
+type UnsafeAccountServer interface {
+	mustEmbedUnimplementedAccountServer()
 }
 
-func RegisterPaymentServer(s grpc.ServiceRegistrar, srv PaymentServer) {
-	// If the following call pancis, it indicates UnimplementedPaymentServer was
+func RegisterAccountServer(s grpc.ServiceRegistrar, srv AccountServer) {
+	// If the following call pancis, it indicates UnimplementedAccountServer was
 	// embedded by pointer and is nil.  This will cause panics if an
 	// unimplemented method is ever invoked, so we test this at initialization
 	// time to prevent it from happening at runtime later due to I/O.
 	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
 		t.testEmbeddedByValue()
 	}
-	s.RegisterService(&Payment_ServiceDesc, srv)
+	s.RegisterService(&Account_ServiceDesc, srv)
 }
 
-func _Payment_CreateAccount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AccountRequest)
+func _Account_ValidateToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ValidateTokenRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(PaymentServer).CreateAccount(ctx, in)
+		return srv.(AccountServer).ValidateToken(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Payment_CreateAccount_FullMethodName,
+		FullMethod: Account_ValidateToken_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PaymentServer).CreateAccount(ctx, req.(*AccountRequest))
+		return srv.(AccountServer).ValidateToken(ctx, req.(*ValidateTokenRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-// Payment_ServiceDesc is the grpc.ServiceDesc for Payment service.
+// Account_ServiceDesc is the grpc.ServiceDesc for Account service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var Payment_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "Payment",
-	HandlerType: (*PaymentServer)(nil),
+var Account_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "Account",
+	HandlerType: (*AccountServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "CreateAccount",
-			Handler:    _Payment_CreateAccount_Handler,
+			MethodName: "ValidateToken",
+			Handler:    _Account_ValidateToken_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
