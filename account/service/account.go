@@ -5,6 +5,7 @@ import (
 
 	"github.com/elangreza14/be-assignment/account/dto"
 	"github.com/elangreza14/be-assignment/account/model"
+	gen "github.com/elangreza14/be-assignment/gen/go"
 	genaccount "github.com/elangreza14/be-assignment/gen/go"
 	"github.com/google/uuid"
 )
@@ -73,4 +74,32 @@ func (as *AccountService) GetAccounts(ctx context.Context, userID uuid.UUID) (dt
 	}
 
 	return res, nil
+}
+
+func (as *AccountService) GetAccountHistories(ctx context.Context, userID uuid.UUID, accountID int) (*dto.TransferHistoryResponse, error) {
+	// todo check userid
+	transfers, err := as.paymentClient.GetAccountHistory(ctx, &gen.GetAccountHistoryRequest{
+		Id: uint32(accountID),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	res := make([]dto.TransferHistoryResponseElement, 0)
+	for _, transfer := range transfers.Histories {
+		res = append(res,
+			dto.TransferHistoryResponseElement{
+				ID:            int(transfer.Id),
+				FromAccountID: int(transfer.FromAccountId),
+				ToAccountID:   int(transfer.ToAccountId),
+				Amount:        int(transfer.Amount),
+				Action:        transfer.Action,
+				CreatedAt:     transfer.CreatedAt.AsTime(),
+			})
+	}
+
+	return &dto.TransferHistoryResponse{
+		Histories: res,
+		Balance:   int(transfers.Balance),
+	}, nil
 }

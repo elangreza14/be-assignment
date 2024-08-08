@@ -9,7 +9,7 @@ import (
 func AccountRoute(route *gin.RouterGroup,
 	AuthMiddleware *middleware.AuthMiddleware,
 	AccountController *controller.AccountController) {
-	AccountRoutes := route.Group("/accounts")
-	AccountRoutes.POST("", AuthMiddleware.MustAuthMiddleware(), AccountController.CreateAccount())
-	AccountRoutes.GET("/me", AuthMiddleware.MustAuthMiddleware(), AccountController.GetAccountList())
+	route.POST("/accounts", AuthMiddleware.MustAuthMiddleware(), AccountController.CreateAccount())
+	route.GET("/accounts/:accountID", AuthMiddleware.MustAuthMiddleware(), AccountController.GetAccountHistoriesList())
+	route.GET("/accounts/me", AuthMiddleware.MustAuthMiddleware(), AccountController.GetAccountList())
 }

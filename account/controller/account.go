@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"strconv"
 
 	"github.com/elangreza14/be-assignment/account/dto"
 	"github.com/elangreza14/be-assignment/account/middleware"
@@ -16,6 +17,7 @@ type (
 	AccountService interface {
 		CreateAccount(ctx context.Context, userID uuid.UUID, name string, req dto.CreateAccountPayload) error
 		GetAccounts(ctx context.Context, userID uuid.UUID) (dto.AccountListResponse, error)
+		GetAccountHistories(ctx context.Context, userID uuid.UUID, accountID int) (*dto.TransferHistoryResponse, error)
 	}
 
 	AccountController struct {
@@ -75,6 +77,37 @@ func (ac *AccountController) GetAccountList() gin.HandlerFunc {
 		}
 
 		res, err := ac.AccountService.GetAccounts(c, user.ID)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, dto.NewBaseResponse(nil, err))
+			return
+		}
+
+		c.JSON(http.StatusOK, dto.NewBaseResponse(res, nil))
+	}
+}
+
+func (ac *AccountController) GetAccountHistoriesList() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		rawUser, ok := c.Get(middleware.UserMiddlewareKey)
+		if !ok {
+			c.AbortWithStatusJSON(http.StatusBadRequest, dto.NewBaseResponse(nil, errors.New("cannot parse middleware")))
+			return
+		}
+
+		user, ok := rawUser.(*model.User)
+		if !ok {
+			c.AbortWithStatusJSON(http.StatusBadRequest, dto.NewBaseResponse(nil, errors.New("cannot parse middleware payload")))
+			return
+		}
+
+		accountIdRaw := c.Param("accountID")
+		accountID, err := strconv.Atoi(accountIdRaw)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusBadRequest, dto.NewBaseResponse(nil, errors.New("cannot parse account id")))
+			return
+		}
+
+		res, err := ac.AccountService.GetAccountHistories(c, user.ID, accountID)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, dto.NewBaseResponse(nil, err))
 			return
