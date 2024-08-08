@@ -3,7 +3,6 @@ package controller
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
 
 	"github.com/elangreza14/be-assignment/payment/dto"
@@ -34,6 +33,36 @@ func (ac *PaymentController) SendPayment() gin.HandlerFunc {
 		err := c.ShouldBindJSON(&req)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusBadRequest, dto.NewBaseResponse(nil, err))
+			return
+		}
+
+		rawAccountIDs, ok := c.Get(middleware.UserAccountIDsMiddlewareKey)
+		if !ok {
+			c.AbortWithStatusJSON(http.StatusBadRequest, dto.NewBaseResponse(nil, errors.New("cannot parse account id")))
+			return
+		}
+
+		accountIDs, ok := rawAccountIDs.([]uint32)
+		if !ok {
+			c.AbortWithStatusJSON(http.StatusBadRequest, dto.NewBaseResponse(nil, errors.New("cannot parse account id")))
+			return
+		}
+
+		found := false
+		for _, accountID := range accountIDs {
+			if accountID == uint32(req.AccountID) {
+				found = true
+			}
+		}
+
+		if !found {
+			c.AbortWithStatusJSON(http.StatusBadRequest, dto.NewBaseResponse(nil, errors.New("cannot find account id")))
+			return
+		}
+
+		err = ac.PaymentService.SendPayment(c, req)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, dto.NewBaseResponse(nil, err))
 			return
 		}
 
@@ -79,8 +108,6 @@ func (ac *PaymentController) WithdrawPayment() gin.HandlerFunc {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, dto.NewBaseResponse(nil, err))
 			return
 		}
-
-		fmt.Println("cel")
 
 		c.JSON(http.StatusOK, dto.NewBaseResponse("success", nil))
 	}

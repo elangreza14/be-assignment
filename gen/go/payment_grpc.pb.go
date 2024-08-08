@@ -19,7 +19,8 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	Payment_CreateAccount_FullMethodName = "/Payment/CreateAccount"
+	Payment_CreateAccount_FullMethodName     = "/Payment/CreateAccount"
+	Payment_GetAccountHistory_FullMethodName = "/Payment/GetAccountHistory"
 )
 
 // PaymentClient is the client API for Payment service.
@@ -27,6 +28,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type PaymentClient interface {
 	CreateAccount(ctx context.Context, in *CreateAccountRequest, opts ...grpc.CallOption) (*CreateAccountReply, error)
+	GetAccountHistory(ctx context.Context, in *GetAccountHistoryRequest, opts ...grpc.CallOption) (*GetAccountHistoriesReply, error)
 }
 
 type paymentClient struct {
@@ -47,11 +49,22 @@ func (c *paymentClient) CreateAccount(ctx context.Context, in *CreateAccountRequ
 	return out, nil
 }
 
+func (c *paymentClient) GetAccountHistory(ctx context.Context, in *GetAccountHistoryRequest, opts ...grpc.CallOption) (*GetAccountHistoriesReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetAccountHistoriesReply)
+	err := c.cc.Invoke(ctx, Payment_GetAccountHistory_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PaymentServer is the server API for Payment service.
 // All implementations must embed UnimplementedPaymentServer
 // for forward compatibility.
 type PaymentServer interface {
 	CreateAccount(context.Context, *CreateAccountRequest) (*CreateAccountReply, error)
+	GetAccountHistory(context.Context, *GetAccountHistoryRequest) (*GetAccountHistoriesReply, error)
 	mustEmbedUnimplementedPaymentServer()
 }
 
@@ -64,6 +77,9 @@ type UnimplementedPaymentServer struct{}
 
 func (UnimplementedPaymentServer) CreateAccount(context.Context, *CreateAccountRequest) (*CreateAccountReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateAccount not implemented")
+}
+func (UnimplementedPaymentServer) GetAccountHistory(context.Context, *GetAccountHistoryRequest) (*GetAccountHistoriesReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetAccountHistory not implemented")
 }
 func (UnimplementedPaymentServer) mustEmbedUnimplementedPaymentServer() {}
 func (UnimplementedPaymentServer) testEmbeddedByValue()                 {}
@@ -104,6 +120,24 @@ func _Payment_CreateAccount_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Payment_GetAccountHistory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAccountHistoryRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PaymentServer).GetAccountHistory(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Payment_GetAccountHistory_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PaymentServer).GetAccountHistory(ctx, req.(*GetAccountHistoryRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Payment_ServiceDesc is the grpc.ServiceDesc for Payment service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -114,6 +148,10 @@ var Payment_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CreateAccount",
 			Handler:    _Payment_CreateAccount_Handler,
+		},
+		{
+			MethodName: "GetAccountHistory",
+			Handler:    _Payment_GetAccountHistory_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -2,26 +2,25 @@ package service
 
 import (
 	"context"
-	"fmt"
+	"errors"
 
 	"github.com/elangreza14/be-assignment/payment/dto"
 	"github.com/elangreza14/be-assignment/payment/model"
 )
 
 type (
-	entryRepo interface {
-	}
-
 	transferRepo interface {
+		GetTransferByAccountID(ctx context.Context, accountID int) ([]model.Transfer, error)
 	}
 
 	accountTransferRepo interface {
+		TopUpTX(ctx context.Context, req *model.Account, amount int) error
 		WithdrawTX(ctx context.Context, req *model.Account, amount int) error
+		SendTX(ctx context.Context, fromAccount *model.Account, toAccount *model.Account, amount int) error
 	}
 
 	PaymentService struct {
 		AccountRepo         accountRepo
-		EntryRepo           entryRepo
 		TransferRepo        transferRepo
 		accountTransferRepo accountTransferRepo
 	}
@@ -29,39 +28,56 @@ type (
 
 func NewPaymentService(
 	accountRepo accountRepo,
-	EntryRepo entryRepo,
 	TransferRepo transferRepo,
 	accountTransferRepo accountTransferRepo) *PaymentService {
 	return &PaymentService{
 		AccountRepo:         accountRepo,
-		EntryRepo:           EntryRepo,
 		TransferRepo:        TransferRepo,
 		accountTransferRepo: accountTransferRepo,
 	}
 }
 
 func (as *PaymentService) SendPayment(ctx context.Context, req dto.SendPayload) error {
-	// todo
-	// wrap tx
-	// create transfer
-	// reduce account balance sender
-	// add account balance receiver
-	return nil
-}
-
-func (as *PaymentService) WithdrawPayment(ctx context.Context, req dto.WithdrawPayload) error {
-
-	// todo
-	// wrap tx
-	// create entry current account
-	// reduce account balance sender
-
-	account, err := as.AccountRepo.Get(ctx, "id", req.AccountID)
+	fromAccount, err := as.AccountRepo.Get(ctx, "id", req.AccountID)
 	if err != nil {
 		return err
 	}
 
-	fmt.Println(req.Amount, req.AccountID)
+	toAccount, err := as.AccountRepo.Get(ctx, "id", req.ToAccountID)
+	if err != nil {
+		return err
+	}
+
+	if fromAccount.ID == toAccount.ID {
+		err = as.accountTransferRepo.TopUpTX(ctx, fromAccount, req.Amount)
+		if err != nil {
+			return nil
+		}
+
+		return nil
+	}
+
+	if fromAccount.ProductID != toAccount.ProductID {
+		return errors.New("cannot transfer with different product id")
+	}
+
+	if fromAccount.CurrencyCode != toAccount.CurrencyCode {
+		return errors.New("cannot transfer with different currency")
+	}
+
+	err = as.accountTransferRepo.SendTX(ctx, fromAccount, toAccount, req.Amount)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (as *PaymentService) WithdrawPayment(ctx context.Context, req dto.WithdrawPayload) error {
+	account, err := as.AccountRepo.Get(ctx, "id", req.AccountID)
+	if err != nil {
+		return err
+	}
 
 	err = as.accountTransferRepo.WithdrawTX(ctx, account, req.Amount)
 	if err != nil {
@@ -71,9 +87,37 @@ func (as *PaymentService) WithdrawPayment(ctx context.Context, req dto.WithdrawP
 	return nil
 }
 
-func (as *PaymentService) PaymentList(ctx context.Context, req dto.WithdrawPayload) error {
+func (as *PaymentService) PaymentList(ctx context.Context, accountID int) ([]dto.TransferHistoryResponse, error) {
 
-	// get entries
+	transfers, err := as.TransferRepo.GetTransferByAccountID(ctx, accountID)
+	if err != nil {
+		return nil, err
+	}
+	res := make([]dto.TransferHistoryResponse, 0)
+	for _, transfer := range transfers {
+		action := ""
+		if transfer.FromAccountID == transfer.ToAccountID {
+			if transfer.Amount < 0 {
+				action = "WITHDRAW"
+			} else {
+				action = "TOP_UP"
+			}
+		} else {
+			if transfer.Amount < 0 {
+				action = "TRANSFER_OUT"
+			} else {
+				action = "TRANSFER_IN"
+			}
+		}
 
-	return nil
+		res = append(res, dto.TransferHistoryResponse{
+			ID:            transfer.ID,
+			FromAccountID: transfer.FromAccountID,
+			ToAccountID:   transfer.ToAccountID,
+			Amount:        transfer.Amount,
+			Action:        action,
+		})
+	}
+
+	return res, nil
 }

@@ -2,8 +2,9 @@ package dto
 
 type (
 	SendPayload struct {
-		Amount      int    `json:"balance"`
-		ToAccountID string `json:"to_account_id"`
+		Amount      int `json:"amount"`
+		ToAccountID int `json:"to_account_id"`
+		AccountID   int `json:"account_id"`
 	}
 
 	WithdrawPayload struct {
