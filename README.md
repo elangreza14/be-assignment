@@ -1,5 +1,137 @@
 # Take home assignment
 
+# Simple Bank Transaction
+
+## USER service
+
+user service is portal to interact with user and account
+- register API
+
+to register the user
+```curl
+curl --location 'localhost:8080/api/auth/register' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+    "name": "test",
+    "email": "test@test.com",
+    "password": "test"
+}'
+```
+
+- login API
+
+when login is successful you will receive jwt token and the token must be use to authorize the API
+```curl
+curl --location 'localhost:8080/api/auth/login' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+    "email":"test@test.com",
+    "password":"test"
+}'
+```
+
+- currency API
+
+this api is a list of currency
+```curl
+curl --location 'localhost:8080/api/currencies'
+```
+
+- product API
+
+this api is a list of products
+```curl
+curl --location 'localhost:8080/api/products'
+```
+
+- create Account API
+
+this api is creating account based on product, currency and user. It also required to send the token in Authorization header
+```curl
+curl --location 'localhost:8080/api/accounts' \
+--header 'Authorization: bearer {{ TOKEN }}' \
+--header 'Content-Type: application/json' \
+--data '{
+    "currency_code":"SGD",
+    "product_id": 1
+}'
+```
+
+- get accounts API
+
+this api is listing all of the registered accounts. It also required to send the token in Authorization header
+```
+curl --location 'localhost:8080/api/accounts/me' \
+--header 'Authorization: bearer {{ TOKEN }}'
+``` 
+
+- get accounts balance and history transaction API
+
+this api is getting the account balance into payment service with GRPC. It also required to send the token in Authorization header
+```
+curl --location 'localhost:8080/api/accounts/10020' \
+--header 'Authorization: bearer {{ TOKEN }}'
+``` 
+
+## Payment service
+
+payment service is portal to interact with transactional data and transfer from one account to another
+
+- Send Payment API
+
+there's two condition to operate this API
+
+1. to send to another account with body request 
+
+the `account_id` keys is *origin* of account_id, 
+the `to_account_id` keys is *destination* of account_id and
+the amount is amount of the transaction. It also required to send the token in Authorization header, in the backend the token will be checked by GRPC calls.
+
+```curl
+curl --location 'localhost:8081/api/payments/send' \
+--header 'Authorization: bearer {{ TOKEN }}' \
+--header 'Content-Type: application/json' \
+--data '{
+    "account_id":10019,
+    "to_account_id":10020,
+    "amount": 10
+}'
+```
+
+
+
+2. to top up the account / simulation of ATM top-up
+
+the `account_id` keys and the `to_account_id` keys is same, so the amount is will be added into balance directly
+
+
+```curl
+curl --location 'localhost:8081/api/payments/send' \
+--header 'Authorization: bearer {{ TOKEN }}' \
+--header 'Content-Type: application/json' \
+--data '{
+    "account_id":10020,
+    "to_account_id":10020,
+    "amount": 10
+}'
+```
+
+
+- Withdraw Payment API
+
+this API is used to get to amount from the current balance. It also required to send the token in Authorization header, in the backend the token will be checked by GRPC calls.
+
+```
+curl --location 'localhost:8081/api/payments/withdraw' \
+--header 'Authorization: bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJuZ3VqaS1hdXRoIiwiZXhwIjoxNzIzMTcxMTA0LCJpYXQiOjE3MjMwODQ3MDQsImp0aSI6IjAxOTEyZmRhLTA5MzItNzIzMy1hMGRiLWZhZjNhZmM0MmNiNiJ9.B_Bd_x9BPlXn7LOODryE028O_RHJosxF6kIBLp8kjBg' \
+--header 'Content-Type: application/json' \
+--data '{
+    "account_id":10020,
+    "amount": 20
+}'
+```
+
+
 
 ## Description:
 Build 2 Backend services which manages user’s accounts and transactions (send/withdraw). 
