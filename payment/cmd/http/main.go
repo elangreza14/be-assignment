@@ -60,9 +60,10 @@ func main() {
 	accountRepository := repository.NewAccountRepository(db)
 	entryRepository := repository.NewEntryRepository(db)
 	transferRepository := repository.NewTransferRepository(db)
+	accountTransferRepository := repository.NewAccountTransferRepository(db)
 
 	accountService := service.NewAccountService(accountRepository)
-	paymentService := service.NewPaymentService(accountRepository, entryRepository, transferRepository)
+	paymentService := service.NewPaymentService(accountRepository, entryRepository, transferRepository, accountTransferRepository)
 	paymentController := controller.NewPaymentController(paymentService)
 
 	conn, err := grpc.NewClient("localhost:50051", grpc.WithTransportCredentials(insecure.NewCredentials()))

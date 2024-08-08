@@ -11,6 +11,7 @@ import (
 type (
 	accountRepo interface {
 		Create(ctx context.Context, entity model.Account) error
+		Get(ctx context.Context, by string, val any) (*model.Account, error)
 	}
 
 	AccountService struct {

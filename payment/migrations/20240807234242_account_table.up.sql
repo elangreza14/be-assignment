@@ -9,7 +9,8 @@ CREATE TABLE IF NOT EXISTS "accounts" (
     "balance" BIGINT NOT NULL,
     "name" VARCHAR NOT NULL,
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    "updated_at" TIMESTAMPTZ NULL
+    "updated_at" TIMESTAMPTZ NULL,
+    check(balance >= 0)
 );
 
 CREATE TRIGGER "log_account_update" BEFORE
