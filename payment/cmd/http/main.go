@@ -115,7 +115,7 @@ func main() {
 		log.Fatalf("failed to listen: %v", err)
 	}
 	s := grpc.NewServer()
-	gen.RegisterPaymentServer(s, servergrpc.NewPaymentServerGrpc(accountService))
+	gen.RegisterPaymentServer(s, servergrpc.NewPaymentServerGrpc(accountService, paymentService))
 
 	go func() {
 		logger.Info("listening grpc", zap.Int("port", 50052))

@@ -6,33 +6,40 @@ import (
 	gen "github.com/elangreza14/be-assignment/gen/go"
 	"github.com/elangreza14/be-assignment/payment/dto"
 	"github.com/google/uuid"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type (
-	paymentService interface {
+	accountService interface {
 		CreateAccount(ctx context.Context, req dto.CreateAccountPayload) error
 	}
 
+	paymentService interface {
+		PaymentList(ctx context.Context, accountID int) (int, []dto.TransferHistoryResponse, error)
+	}
+
 	PaymentServerGrpc struct {
-		PaymentService paymentService
+		accountService accountService
+		paymentService paymentService
 		gen.UnimplementedPaymentServer
 	}
 )
 
-func NewPaymentServerGrpc(accountService paymentService) *PaymentServerGrpc {
+func NewPaymentServerGrpc(accountService accountService, paymentService paymentService) *PaymentServerGrpc {
 	return &PaymentServerGrpc{
-		PaymentService:             accountService,
+		accountService:             accountService,
+		paymentService:             paymentService,
 		UnimplementedPaymentServer: gen.UnimplementedPaymentServer{},
 	}
 }
 
-func (asg PaymentServerGrpc) CreateAccount(ctx context.Context, req *gen.CreateAccountRequest) (*gen.CreateAccountReply, error) {
+func (psg PaymentServerGrpc) CreateAccount(ctx context.Context, req *gen.CreateAccountRequest) (*gen.CreateAccountReply, error) {
 	userID, err := uuid.Parse(req.UserId)
 	if err != nil {
 		return nil, err
 	}
 
-	err = asg.PaymentService.CreateAccount(ctx, dto.CreateAccountPayload{
+	err = psg.accountService.CreateAccount(ctx, dto.CreateAccountPayload{
 		ID:           int(req.Id),
 		UserID:       userID,
 		Name:         req.Name,
@@ -46,5 +53,28 @@ func (asg PaymentServerGrpc) CreateAccount(ctx context.Context, req *gen.CreateA
 
 	return &gen.CreateAccountReply{
 		Status: "ok",
+	}, nil
+}
+
+func (psg PaymentServerGrpc) GetAccountHistory(ctx context.Context, req *gen.GetAccountHistoryRequest) (*gen.GetAccountHistoriesReply, error) {
+	balance, transfers, err := psg.paymentService.PaymentList(ctx, int(req.Id))
+	if err != nil {
+		return nil, err
+	}
+
+	res := []*gen.GetAccountHistoryReply{}
+	for _, payment := range transfers {
+		res = append(res, &gen.GetAccountHistoryReply{
+			Id:            uint32(payment.ID),
+			ToAccountId:   uint32(payment.ToAccountID),
+			FromAccountId: uint32(payment.FromAccountID),
+			Amount:        int32(payment.Amount),
+			Action:        payment.Action,
+			CreatedAt:     timestamppb.New(payment.CreatedAt),
+		})
+	}
+	return &gen.GetAccountHistoriesReply{
+		Balance:   int32(balance),
+		Histories: res,
 	}, nil
 }

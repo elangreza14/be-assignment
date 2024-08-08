@@ -9,7 +9,7 @@ message CreateAccountRequest {
     string user_id = 2;
     string currency_code = 3;
     uint32 product_id = 4;
-    uint32 balance = 5;
+    int32 balance = 5;
     string name = 6;
 }
 
@@ -25,13 +25,14 @@ message GetAccountHistoryReply {
     uint32 id = 1;
     uint32 to_account_id = 2;
     uint32 from_account_id = 3;
-    uint32 amount = 4;
+    int32 amount = 4;
     string action = 5;
     google.protobuf.Timestamp created_at = 6;
 }
 
 message GetAccountHistoriesReply {
-    repeated GetAccountHistoryReply histories = 1;
+    int32 balance = 1;
+    repeated GetAccountHistoryReply histories = 2;
 }
 
 service Payment {

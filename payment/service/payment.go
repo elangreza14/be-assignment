@@ -87,11 +87,16 @@ func (as *PaymentService) WithdrawPayment(ctx context.Context, req dto.WithdrawP
 	return nil
 }
 
-func (as *PaymentService) PaymentList(ctx context.Context, accountID int) ([]dto.TransferHistoryResponse, error) {
+func (as *PaymentService) PaymentList(ctx context.Context, accountID int) (int, []dto.TransferHistoryResponse, error) {
+
+	account, err := as.AccountRepo.Get(ctx, "id", accountID)
+	if err != nil {
+		return 0, nil, err
+	}
 
 	transfers, err := as.TransferRepo.GetTransferByAccountID(ctx, accountID)
 	if err != nil {
-		return nil, err
+		return 0, nil, err
 	}
 	res := make([]dto.TransferHistoryResponse, 0)
 	for _, transfer := range transfers {
@@ -103,7 +108,7 @@ func (as *PaymentService) PaymentList(ctx context.Context, accountID int) ([]dto
 				action = "TOP_UP"
 			}
 		} else {
-			if transfer.Amount < 0 {
+			if transfer.FromAccountID == accountID {
 				action = "TRANSFER_OUT"
 			} else {
 				action = "TRANSFER_IN"
@@ -116,8 +121,9 @@ func (as *PaymentService) PaymentList(ctx context.Context, accountID int) ([]dto
 			ToAccountID:   transfer.ToAccountID,
 			Amount:        transfer.Amount,
 			Action:        action,
+			CreatedAt:     transfer.CreatedAt,
 		})
 	}
 
-	return res, nil
+	return account.Balance, res, nil
 }
