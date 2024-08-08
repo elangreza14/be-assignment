@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS "products" (
     "updated_at" TIMESTAMPTZ NULL
 );
 
-CREATE TRIGGER "log_token_update" BEFORE
+CREATE TRIGGER "log_product_update" BEFORE
 UPDATE
     ON "products" FOR EACH ROW EXECUTE PROCEDURE log_update_master();
 

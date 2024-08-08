@@ -5,6 +5,7 @@ import (
 
 	"github.com/elangreza14/be-assignment/account/dto"
 	"github.com/elangreza14/be-assignment/account/model"
+	genaccount "github.com/elangreza14/be-assignment/gen/go"
 	"github.com/google/uuid"
 )
 
@@ -15,13 +16,15 @@ type (
 	}
 
 	AccountService struct {
-		AccountRepo accountRepo
+		AccountRepo   accountRepo
+		paymentClient genaccount.PaymentClient
 	}
 )
 
-func NewAccountService(accountRepo accountRepo) *AccountService {
+func NewAccountService(accountRepo accountRepo, paymentClient genaccount.PaymentClient) *AccountService {
 	return &AccountService{
-		AccountRepo: accountRepo,
+		AccountRepo:   accountRepo,
+		paymentClient: paymentClient,
 	}
 }
 
@@ -32,6 +35,18 @@ func (as *AccountService) CreateAccount(ctx context.Context, userID uuid.UUID, n
 	}
 
 	err = as.AccountRepo.Create(ctx, *account)
+	if err != nil {
+		return err
+	}
+
+	_, err = as.paymentClient.CreateAccount(ctx, &genaccount.AccountRequest{
+		UserId:       userID.String(),
+		CurrencyCode: req.CurrencyCode,
+		ProductId:    uint32(req.ProductID),
+		Balance:      0,
+		Name:         name,
+	})
+
 	if err != nil {
 		return err
 	}
@@ -50,9 +65,7 @@ func (as *AccountService) GetAccounts(ctx context.Context, userID uuid.UUID) (dt
 	for _, account := range accounts {
 		res = append(res, dto.AccountListResponseElement{
 			CurrencyCode: account.CurrencyCode,
-			Balance:      account.Balance,
 			Name:         account.Name,
-			Status:       account.Status,
 			ProductID:    account.ProductID,
 		})
 	}

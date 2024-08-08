@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -12,12 +13,13 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/elangreza14/be-assignment/account/cmd/http/routes"
-	"github.com/elangreza14/be-assignment/account/controller"
-	"github.com/elangreza14/be-assignment/account/middleware"
-	"github.com/elangreza14/be-assignment/account/repository"
-	"github.com/elangreza14/be-assignment/account/service"
 	genaccount "github.com/elangreza14/be-assignment/gen/go"
+	"github.com/elangreza14/be-assignment/payment/cmd/http/routes"
+	"github.com/elangreza14/be-assignment/payment/controller"
+	servergrpc "github.com/elangreza14/be-assignment/payment/grpc"
+	"github.com/elangreza14/be-assignment/payment/middleware"
+	"github.com/elangreza14/be-assignment/payment/repository"
+	"github.com/elangreza14/be-assignment/payment/service"
 	"github.com/gin-contrib/cors"
 	ginzap "github.com/gin-contrib/zap"
 	"github.com/gin-gonic/gin"
@@ -31,7 +33,6 @@ import (
 	_ "github.com/lib/pq"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
 func main() {
@@ -55,30 +56,16 @@ func main() {
 	errChecker(err)
 
 	// dependency injection
-	userRepository := repository.NewUserRepository(db)
-	tokenRepository := repository.NewTokenRepository(db)
-	currencyRepository := repository.NewCurrencyRepository(db)
-	productRepository := repository.NewProductRepository(db)
 	accountRepository := repository.NewAccountRepository(db)
+	entryRepository := repository.NewEntryRepository(db)
+	transferRepository := repository.NewTransferRepository(db)
 
-	conn, err := grpc.NewClient("localhost:50051", grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		log.Fatalf("did not connect: %v", err)
-	}
-	defer conn.Close()
-	paymentClient := genaccount.NewPaymentClient(conn)
+	accountService := service.NewAccountService(accountRepository)
+	paymentService := service.NewPaymentService(accountRepository, entryRepository, transferRepository)
+	fmt.Println(accountService)
+	paymentController := controller.NewPaymentController(paymentService)
 
-	authService := service.NewAuthService(userRepository, tokenRepository)
-	currencyService := service.NewCurrencyService(currencyRepository)
-	productService := service.NewProductService(productRepository)
-	accountService := service.NewAccountService(accountRepository, paymentClient)
-
-	authController := controller.NewAuthController(authService)
-	accountController := controller.NewAccountController(accountService)
-	currencyController := controller.NewCurrencyController(currencyService)
-	productController := controller.NewProductController(productService)
-
-	authMiddleWare := middleware.NewAuthMiddleware(authService)
+	authMiddleWare := middleware.NewAuthMiddleware()
 
 	// router
 	if os.Getenv("ENV") != "DEVELOPMENT" {
@@ -102,10 +89,7 @@ func main() {
 
 	// group api
 	apiGroup := router.Group("/api")
-	routes.AuthRoute(apiGroup, authController)
-	routes.CurrencyRoute(apiGroup, currencyController)
-	routes.ProductRoute(apiGroup, productController)
-	routes.AccountRoute(apiGroup, authMiddleWare, accountController)
+	routes.PaymentRoute(apiGroup, authMiddleWare, paymentController)
 
 	srv := &http.Server{
 		Addr:    os.Getenv("HTTP_PORT"),
@@ -119,12 +103,30 @@ func main() {
 		}
 	}()
 
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", 50051))
+	if err != nil {
+		log.Fatalf("failed to listen: %v", err)
+	}
+	s := grpc.NewServer()
+	genaccount.RegisterPaymentServer(s, servergrpc.NewAccountServerGrpc(accountService))
+
+	go func() {
+		logger.Info("listening grpc", zap.Int("port", 50051))
+		if err := s.Serve(lis); err != nil {
+			log.Fatalf("failed to serve: %v", err)
+		}
+	}()
+
 	wait := gracefulShutdown(context.Background(), logger, time.Second*5,
 		func(ctx context.Context) error {
 			return srv.Shutdown(ctx)
 		},
 		func(ctx context.Context) error {
 			db.Close()
+			return nil
+		},
+		func(ctx context.Context) error {
+			s.Stop()
 			return nil
 		})
 

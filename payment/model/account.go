@@ -13,6 +13,8 @@ type Account struct {
 	ProductID    int       `db:"product_id"`
 	Name         string    `db:"name"`
 	CurrencyCode string    `db:"currency_code"`
+	Balance      int       `db:"balance"`
+	Status       string    `db:"status"`
 
 	CreatedAt time.Time    `db:"created_at"`
 	UpdatedAt sql.NullTime `db:"updated_at"`
@@ -24,6 +26,8 @@ func NewAccount(userID uuid.UUID, name, currencyCode string, productID int) (*Ac
 		ProductID:    productID,
 		Name:         name,
 		CurrencyCode: currencyCode,
+		Balance:      0,
+		Status:       "INACTIVE",
 	}, nil
 }
 
@@ -37,7 +41,8 @@ func (a Account) Columns() []string {
 		"user_id",
 		"name",
 		"currency_code",
-		"product_id",
+		"balance",
+		"status",
 	}
 }
 
@@ -48,6 +53,7 @@ func (a Account) Data() map[string]any {
 		"user_id":       a.UserID,
 		"name":          a.Name,
 		"currency_code": a.CurrencyCode,
-		"product_id":    a.ProductID,
+		"balance":       a.Balance,
+		"status":        a.Status,
 	}
 }
